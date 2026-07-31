@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URL Threat Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #090c11;
+    --bg-raised: #10151d;
+    --bg-panel: #0d1219;
+    --grid-line: #1a222c;
+    --border: #212b37;
+    --text: #e6ecf2;
+    --text-mid: #8a96a3;
+    --text-dim: #566072;
+    --teal: #24e0ac;
+    --teal-dim: #0f4437;
+    --amber: #ffb238;
+    --amber-dim: #4a3712;
+    --red: #ff4463;
+    --red-dim: #4a1420;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 42px 42px;
+    background-position: center top;
+  }
+
+  .wrap{
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--teal);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom: 14px;
+  }
+
+  .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 0 rgba(36,224,172,0.6);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(36,224,172,0.5); }
+    70%{ box-shadow: 0 0 0 8px rgba(36,224,172,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(36,224,172,0); }
+  }
+
+  h1{
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: clamp(30px, 4.4vw, 46px);
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+  }
+
+  h1 span{ color: var(--text-dim); }
+
+  .hero-sub{
+    max-width: 460px;
+    color: var(--text-mid);
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+
+  .feed-badge{
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-raised);
+    display:flex;
+    align-items:center;
+    gap: 9px;
+    white-space: nowrap;
+    color: var(--text-mid);
+  }
+
+  .feed-badge .dot{ background: var(--amber); }
+  .feed-badge.live .dot{ background: var(--teal); }
+  .feed-badge.live{ color: var(--teal); border-color: var(--teal-dim); }
+
+  /* ---------- SCAN CARD ---------- */
+  .card{
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .scan-input-row{
+    display:flex;
+    gap: 10px;
+    padding: 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-raised);
+  }
+
+  #urlInput{
+    flex:1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 13px 14px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  #urlInput:focus{ border-color: var(--teal); }
+  #urlInput::placeholder{ color: var(--text-dim); }
+
+  #scanBtn{
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    padding: 0 22px;
+    border: none;
+    border-radius: 6px;
+    background: var(--teal);
+    color: #04140f;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+  }
+  #scanBtn:hover{ filter: brightness(1.08); }
+  #scanBtn:active{ transform: scale(0.98); }
+  #scanBtn:disabled{ background: var(--text-dim); cursor: not-allowed; }
+
+  .quick-tries{
+    padding: 10px 18px 16px;
+    display:flex;
+    gap:8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-raised);
+  }
+  .quick-tries span{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    align-self:center;
+    margin-right: 2px;
+  }
+  .chip{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-mid);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .chip:hover{ border-color: var(--teal-dim); color: var(--teal); }
+
+  /* ---------- BODY: console + gauge ---------- */
+  .scan-body{
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    min-height: 340px;
+  }
+  @media (max-width: 720px){
+    .scan-body{ grid-template-columns: 1fr; }
+  }
+
+  .console{
+    padding: 20px 22px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.9;
+    border-right: 1px solid var(--border);
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  @media (max-width: 720px){
+    .console{ border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  .console-line{ display:flex; gap: 10px; opacity:0; animation: fadein .25s forwards; }
+  @keyframes fadein{ to{ opacity:1; } }
+  .console-line .tag{ color: var(--text-dim); flex-shrink:0; }
+  .console-line .msg{ color: var(--text-mid); }
+  .console-line.pass .result{ color: var(--teal); font-weight:600; }
+  .console-line.warn .result{ color: var(--amber); font-weight:600; }
+  .console-line.flag .result{ color: var(--red); font-weight:700; }
+  .console-line .result{ margin-left: auto; flex-shrink:0; }
+
+  .cursor{
+    display:inline-block; width:7px; height:14px;
+    background: var(--teal);
+    animation: blink 1s step-start infinite;
+    vertical-align: -2px;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .placeholder-note{
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .placeholder-note b{ color: var(--text-mid); }
+
+  .verdict-panel{
+    padding: 26px 22px;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    gap: 18px;
+    text-align:center;
+  }
+
+  .gauge-wrap{ position:relative; width:172px; height:172px; }
+  .gauge-wrap svg{ transform: rotate(-90deg); }
+  .gauge-bg{ fill:none; stroke: var(--grid-line); stroke-width: 10; }
+  .gauge-fg{ fill:none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1), stroke .4s; }
+  .gauge-center{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .gauge-score{ font-family: var(--mono); font-size: 34px; font-weight:800; }
+  .gauge-max{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+
+  .verdict-label{
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+  }
+  .verdict-desc{ color: var(--text-mid); font-size: 13px; max-width: 260px; line-height:1.55; }
+
+  .idle-icon{
+    width: 64px; height:64px;
+    border-radius:50%;
+    border: 1px dashed var(--border);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 22px;
+  }
+
+  /* ---------- FINDINGS ---------- */
+  .findings{
+    border-top: 1px solid var(--border);
+    padding: 18px 22px;
+    display: none;
+  }
+  .findings.show{ display:block; }
+  .findings h3{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .finding-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--grid-line);
+    font-size: 13px;
+  }
+  .finding-row:last-child{ border-bottom:none; }
+  .finding-severity{
+    width: 8px; height: 8px; border-radius: 2px; flex-shrink:0;
+  }
+  .finding-severity.pass{ background: var(--teal); }
+  .finding-severity.warn{ background: var(--amber); }
+  .finding-severity.flag{ background: var(--red); }
+  .finding-text{ color: var(--text-mid); }
+  .finding-text b{ color: var(--text); font-weight:600; }
+
+  /* ---------- STATS STRIP ---------- */
+  .stats{
+    margin-top: 22px;
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow:hidden;
+  }
+  @media (max-width: 640px){ .stats{ grid-template-columns: repeat(2,1fr); } }
+
+  .stat{
+    background: var(--bg-panel);
+    padding: 18px 16px;
+  }
+  .stat-num{
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--teal);
+  }
+  .stat-label{
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .how{
+    margin-top: 34px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px){ .how{ grid-template-columns: 1fr; } }
+
+  .how-card{
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .how-card .k{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .how-card h4{
+    font-size: 15.5px;
+    margin-bottom: 8px;
+  }
+  .how-card p{
+    font-size: 13.5px;
+    color: var(--text-mid);
+    line-height: 1.65;
+  }
+  .how-card .k.a{ color: var(--teal); }
+  .how-card .k.b{ color: var(--amber); }
+
+  footer{
+    margin-top: 40px;
+    text-align:center;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow"><span class="dot"></span>PROTECTION ACTIVE — DUAL-LAYER SCANNING</div>
+      <h1>URL Threat <span>Scanner</span></h1>
+      <p class="hero-sub" style="margin-top:12px;">Every link is checked two ways: structural heuristics that catch phishing patterns on sight, and a live cross-reference against a global registry of confirmed malicious domains.</p>
+    </div>
+    <div class="feed-badge" id="feedBadge"><span class="dot"></span><span id="feedBadgeText">Connecting to threat feed…</span></div>
+  </div>
+
+  <div class="card">
+    <div class="scan-input-row">
+      <input id="urlInput" type="text" placeholder="Paste a URL to scan — e.g. https://accounts-secure-verify.com/login" autocomplete="off" spellcheck="false">
+      <button id="scanBtn">RUN SCAN</button>
+    </div>
+    <div class="quick-tries">
+      <span>TRY:</span>
+      <div class="chip" data-url="https://www.wikipedia.org">wikipedia.org</div>
+      <div class="chip" data-url="http://192.168.1.1.verify-account-login.tk/secure">suspicious sample</div>
+      <div class="chip" data-url="https://paypal-security-update.com/confirm@login.com">spoofed sample</div>
+    </div>
+
+    <div class="scan-body">
+      <div class="console" id="console">
+        <p class="placeholder-note">Console output will appear here once a scan starts.<br><br><b>What gets checked:</b><br>→ domain structure (IP literals, @ tricks, subdomain sprawl)<br>→ transport security &amp; suspicious TLDs<br>→ credential-bait keywords<br>→ live match against the confirmed-phishing feed</p>
+      </div>
+      <div class="verdict-panel" id="verdictPanel">
+        <div class="idle-icon">?</div>
+        <div class="verdict-label" style="color:var(--text-dim);">AWAITING SCAN</div>
+        <div class="verdict-desc">Enter a URL above and run a scan to see its risk score.</div>
+      </div>
+    </div>
+
+    <div class="findings" id="findings">
+      <h3>DETAILED FINDINGS</h3>
+      <div id="findingsList"></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="statFeedSize">—</div><div class="stat-label">domains in live feed</div></div>
+    <div class="stat"><div class="stat-num" id="statScans">0</div><div class="stat-label">scans this session</div></div>
+    <div class="stat"><div class="stat-num" id="statFlagged">0</div><div class="stat-label">flagged this session</div></div>
+    <div class="stat"><div class="stat-num">8</div><div class="stat-label">heuristic checks run</div></div>
+  </div>
+
+  <div class="how">
+    <div class="how-card">
+      <div class="k a">LAYER 1 — HEURISTICS</div>
+      <h4>Catches the unknown</h4>
+      <p>Rule-based checks that look for the structural fingerprints of phishing — IP-literal domains, "@" redirect tricks, excessive subdomains, non-standard TLDs, missing HTTPS, and credential-bait keywords. This layer catches brand-new phishing sites the moment they appear, before anyone has reported them.</p>
+    </div>
+    <div class="how-card">
+      <div class="k b">LAYER 2 — LIVE THREAT FEED</div>
+      <h4>Catches the confirmed</h4>
+      <p>Every scanned domain is cross-referenced against a public, actively-maintained blocklist of domains security researchers have already confirmed as malicious. A match here means certainty, not a guess — instant maximum-risk flag.</p>
+    </div>
+  </div>
+
+  <footer>SESSION-ONLY DEMO · NO DATA STORED · FEED SOURCE: PUBLIC OPEN-SOURCE PHISHING BLOCKLIST</footer>
+
+</div>
+
+<script>
+(function(){
+  const FEED_URL = "https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt";
+  let feedDomains = null;
+  let feedLive = false;
+  let scanCount = 0;
+  let flaggedCount = 0;
+
+  const feedBadge = document.getElementById('feedBadge');
+  const feedBadgeText = document.getElementById('feedBadgeText');
+  const statFeedSize = document.getElementById('statFeedSize');
+  const statScans = document.getElementById('statScans');
+  const statFlagged = document.getElementById('statFlagged');
+
+  async function loadFeed(){
+    try{
+      const controller = new AbortController();
+      const timeout = setTimeout(()=>controller.abort(), 7000);
+      const res = await fetch(FEED_URL, { signal: controller.signal });
+      clearTimeout(timeout);
+      if(!res.ok) throw new Error('bad response');
+      const text = await res.text();
+      const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+      feedDomains = new Set(lines);
+      feedLive = true;
+      feedBadge.classList.add('live');
+      feedBadgeText.textContent = 'Live feed connected';
+      statFeedSize.textContent = lines.length.toLocaleString();
+    }catch(e){
+      feedLive = false;
+      feedBadgeText.textContent = 'Feed unreachable — heuristic mode';
+      statFeedSize.textContent = 'offline';
+    }
+  }
+  loadFeed();
+
+  const chips = document.querySelectorAll('.chip');
+  chips.forEach(c=>{
+    c.addEventListener('click', ()=>{
+      document.getElementById('urlInput').value = c.dataset.url;
+    });
+  });
+
+  const scanBtn = document.getElementById('scanBtn');
+  const urlInput = document.getElementById('urlInput');
+  const consoleEl = document.getElementById('console');
+  const verdictPanel = document.getElementById('verdictPanel');
+  const findingsEl = document.getElementById('findings');
+  const findingsList = document.getElementById('findingsList');
+
+  function extractDomain(raw){
+    try{
+      let u = raw.trim();
+      if(!/^https?:\/\//i.test(u)) u = 'http://' + u;
+      const parsed = new URL(u);
+      return { hostname: parsed.hostname, protocol: parsed.protocol, full: u, pathname: parsed.pathname, href: raw.trim() };
+    }catch(e){
+      return null;
+    }
+  }
+
+  function runHeuristics(parsed, rawInput){
+    const checks = [];
+    const hostname = parsed.hostname;
+    let score = 0;
+
+    // 1. IP literal
+    const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+    checks.push({ id: 'IP address used as domain', pass: !isIp, weight: 22 });
+    if(isIp) score += 22;
+
+    // 2. @ symbol trick
+    const hasAt = rawInput.includes('@');
+    checks.push({ id: '"@" redirect trick in URL', pass: !hasAt, weight: 20 });
+    if(hasAt) score += 20;
+
+    // 3. Subdomain count
+    const subCount = Math.max(0, hostname.split('.').length - 2);
+    const tooManySubs = subCount > 3;
+    checks.push({ id: `Subdomain count (${subCount})`, pass: !tooManySubs, weight: 12 });
+    if(tooManySubs) score += 12;
+
+    // 4. URL length
+    const tooLong = rawInput.length > 75;
+    checks.push({ id: `URL length (${rawInput.length} chars)`, pass: !tooLong, weight: 8 });
+    if(tooLong) score += 8;
+
+    // 5. Suspicious TLD
+    const suspiciousTlds = ['.tk','.ml','.ga','.cf','.gq','.xyz','.top','.work','.click','.loan'];
+    const badTld = suspiciousTlds.some(t => hostname.endsWith(t));
+    checks.push({ id: 'TLD reputation', pass: !badTld, weight: 15 });
+    if(badTld) score += 15;
+
+    // 6. HTTPS
+    const noHttps = parsed.protocol !== 'https:';
+    checks.push({ id: 'Transport security (HTTPS)', pass: !noHttps, weight: 10 });
+    if(noHttps) score += 10;
+
+    // 7. Hyphens / lookalike chars
+    const hyphenCount = (hostname.match(/-/g) || []).length;
+    const manyHyphens = hyphenCount >= 3;
+    checks.push({ id: `Hyphen density in domain (${hyphenCount})`, pass: !manyHyphens, weight: 8 });
+    if(manyHyphens) score += 8;
+
+    // 8. Credential-bait keywords
+    const keywords = ['login','verify','secure','account','update','confirm','signin','bank','password','wallet'];
+    const lowered = rawInput.toLowerCase();
+    const kwHit = keywords.filter(k => lowered.includes(k));
+    const hasBrandRisk = kwHit.length > 0;
+    checks.push({ id: `Credential-bait keywords${kwHit.length? ' ('+kwHit.slice(0,2).join(', ')+')':''}`, pass: !hasBrandRisk, weight: 5 });
+    if(hasBrandRisk) score += 5;
+
+    return { checks, score: Math.min(score, 78) };
+  }
+
+  function checkFeed(hostname){
+    if(!feedLive || !feedDomains) return { checked:false, match:false };
+    const bare = hostname.replace(/^www\./,'');
+    return { checked:true, match: feedDomains.has(hostname) || feedDomains.has(bare) };
+  }
+
+  function verdictFromScore(score){
+    if(score >= 70) return { label: 'CRITICAL RISK', color: 'var(--red)', desc: 'Multiple strong phishing indicators detected. Do not enter credentials on this site.' };
+    if(score >= 40) return { label: 'HIGH RISK', color: 'var(--red)', desc: 'Several suspicious patterns found. Treat this link with caution.' };
+    if(score >= 15) return { label: 'MODERATE RISK', color: 'var(--amber)', desc: 'A few minor red flags. Worth a second look before trusting it.' };
+    return { label: 'LOOKS CLEAN', color: 'var(--teal)', desc: 'No significant phishing indicators found in this scan.' };
+  }
+
+  function appendLine(tag, msg, resultText, cls, delay){
+    return new Promise(resolve=>{
+      setTimeout(()=>{
+        const row = document.createElement('div');
+        row.className = 'console-line ' + (cls||'');
+        row.innerHTML = `<span class="tag">›</span><span class="msg">${msg}</span>${resultText? `<span class="result">${resultText}</span>`:''}`;
+        consoleEl.appendChild(row);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+        resolve();
+      }, delay);
+    });
+  }
+
+  function setGauge(score){
+    const circumference = 2 * Math.PI * 76;
+    verdictPanel.innerHTML = `
+      <div class="gauge-wrap">
+        <svg width="172" height="172">
+          <circle class="gauge-bg" cx="86" cy="86" r="76"></circle>
+          <circle class="gauge-fg" id="gaugeFg" cx="86" cy="86" r="76"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}"></circle>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-score" id="gaugeScoreNum">0</div>
+          <div class="gauge-max">/ 100 RISK</div>
+        </div>
+      </div>
+      <div class="verdict-label" id="verdictLabelText">SCANNING…</div>
+      <div class="verdict-desc" id="verdictDescText">Running checks…</div>
+    `;
+    const gaugeFg = document.getElementById('gaugeFg');
+    const v = verdictFromScore(score);
+    gaugeFg.style.stroke = v.color;
+    requestAnimationFrame(()=>{
+      const offset = circumference - (score/100)*circumference;
+      gaugeFg.style.strokeDashoffset = offset;
+    });
+    let current = 0;
+    const numEl = document.getElementById('gaugeScoreNum');
+    const step = Math.max(1, Math.round(score/30));
+    const counter = setInterval(()=>{
+      current = Math.min(score, current+step);
+      numEl.textContent = current;
+      if(current>=score) clearInterval(counter);
+    }, 25);
+    document.getElementById('verdictLabelText').textContent = v.label;
+    document.getElementById('verdictLabelText').style.color = v.color;
+    document.getElementById('verdictDescText').textContent = v.desc;
+  }
+
+  function renderFindings(checks, feedResult, feedContribution){
+    findingsList.innerHTML = '';
+    checks.forEach(c=>{
+      const row = document.createElement('div');
+      row.className = 'finding-row';
+      const sev = c.pass ? 'pass' : (c.weight >= 15 ? 'flag' : 'warn');
+      row.innerHTML = `<div class="finding-severity ${sev}"></div><div class="finding-text"><b>${c.pass? 'Passed':'Flagged'}:</b> ${c.id}</div>`;
+      findingsList.appendChild(row);
+    });
+    const feedRow = document.createElement('div');
+    feedRow.className = 'finding-row';
+    if(!feedResult.checked){
+      feedRow.innerHTML = `<div class="finding-severity warn"></div><div class="finding-text"><b>Skipped:</b> live threat feed (offline)</div>`;
+    } else if(feedResult.match){
+      feedRow.innerHTML = `<div class="finding-severity flag"></div><div class="finding-text"><b>Confirmed:</b> domain matched the live phishing feed</div>`;
+    } else {
+      feedRow.innerHTML = `<div class="finding-severity pass"></div><div class="finding-text"><b>Passed:</b> no match in the live phishing feed</div>`;
+    }
+    findingsList.appendChild(feedRow);
+    findingsEl.classList.add('show');
+  }
+
+  async function runScan(){
+    const raw = urlInput.value.trim();
+    if(!raw) return;
+    const parsed = extractDomain(raw);
+    scanBtn.disabled = true;
+    consoleEl.innerHTML = '';
+    findingsEl.classList.remove('show');
+    verdictPanel.innerHTML = `<div class="idle-icon" style="border-color:var(--teal); color:var(--teal);">…</div><div class="verdict-label" style="color:var(--text-mid);">SCANNING</div><div class="verdict-desc">Running checks…</div>`;
+
+    if(!parsed){
+      await appendLine('', 'Parsing URL structure…', 'ERROR', 'flag', 150);
+      verdictPanel.innerHTML = `<div class="idle-icon" style="border-color:var(--red); color:var(--red);">!</div><div class="verdict-label" style="color:var(--red);">INVALID URL</div><div class="verdict-desc">Couldn't parse that as a URL. Check the format and try again.</div>`;
+      scanBtn.disabled = false;
+      return;
+    }
+
+    await appendLine('', 'Parsing URL structure…', 'OK', 'pass', 150);
+    const { checks, score: heuristicScore } = runHeuristics(parsed, raw);
+
+    let delay = 350;
+    for(const c of checks){
+      await appendLine('', c.id + '…', c.pass ? 'PASS' : 'FLAG', c.pass ? 'pass':'flag', delay);
+      delay += 220;
+    }
+
+    await appendLine('', `Querying live threat feed${feedLive? ` (${feedDomains.size.toLocaleString()} domains)`:''}…`, feedLive ? '' : 'OFFLINE', feedLive ? '' : 'warn', delay);
+    delay += 250;
+    const feedResult = checkFeed(parsed.hostname);
+    let finalScore = heuristicScore;
+    if(feedResult.checked){
+      await appendLine('', 'Match found in confirmed-phishing registry', feedResult.match ? 'YES' : 'NO', feedResult.match ? 'flag':'pass', delay);
+      if(feedResult.match) finalScore = 100;
+      delay += 250;
+    }
+
+    const v = verdictFromScore(finalScore);
+    await appendLine('', 'Verdict', v.label, finalScore>=40?'flag':(finalScore>=15?'warn':'pass'), delay);
+
+    setGauge(finalScore);
+    renderFindings(checks, feedResult);
+
+    scanCount++;
+    if(finalScore >= 40) flaggedCount++;
+    statScans.textContent = scanCount;
+    statFlagged.textContent = flaggedCount;
+
+    scanBtn.disabled = false;
+  }
+
+  scanBtn.addEventListener('click', runScan);
+  urlInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runScan(); });
+})();
+</script>
+
+</body>
+</html>

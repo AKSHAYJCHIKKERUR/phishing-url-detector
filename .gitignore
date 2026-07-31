@@ -1,0 +1,3 @@
+__pycache__/
+*.pyc
+.phishing_feed_cache.txt
